@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg11
+    restart: always
+    ports:
+      - 5431:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./data/timescaledb:/var/lib/postgresql/data
+  prometheus_postgresql_adapter:
+    depends_on:
+    - timescaledb
+    environment:
+      TS_PROM_LOG_LEVEL: debug
+      TS_PROM_DB_CONNECT_RETRIES: 10
+      TS_PROM_DB_HOST: timescaledb
+      TS_PROM_DB_USER: posgtres
+      TS_PROM_DB_PASSWORD: postgres
+      TS_PROM_DB_NAME: postgres
+      TS_PROM_WEB_TELEMETRY_PATH: /metrics-text
+    image: timescale/timescale-prometheus:latest
+    restart: always
+    ports:
+    - 9201:9201/tcp
