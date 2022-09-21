@@ -23,5 +23,14 @@ if __name__ == '__main__':
 
     cursor.execute(query)
     records = cursor.fetchall()
-    dataframe = pd.DataFrame(records)
+
+    result = []
+    for row in records: 
+        flat_array = []
+        for key in row[4]:
+            flat_array = [(row[0], row[1], row[2], row[3], key['uuid'], key['value'], row[5])]
+        result.append(flat_array)
+
+
+    dataframe = pd.DataFrame(result)
     print(dataframe)
