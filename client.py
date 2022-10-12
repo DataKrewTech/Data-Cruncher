@@ -10,7 +10,7 @@ if __name__ == "__main__":
     ## Establish initial Connection 
     client = flight.FlightClient("grpc+tcp://159.65.129.122:32010", middleware=[client_auth_middleware, client_cookie_middleware],**{})
 
-    bearer_token = client.authenticate_basic_token('arjun289', 'eil1Aeng', flight.FlightCallOptions(headers=headers))
+    bearer_token = client.authenticate_basic_token('username', 'pwd', flight.FlightCallOptions(headers=headers))
     headers.append(bearer_token)
 
     # The query to execute.
