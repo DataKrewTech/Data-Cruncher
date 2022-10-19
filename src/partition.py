@@ -22,7 +22,9 @@ if __name__ == '__main__':
     connection = create_connection("acqdat_core_dev", "postgres", "postgres", "188.166.230.56", "5431")
 
     cursor = connection.cursor()
-    query = "select * from acqdat_sensors_data limit 100000"
+    #query = "select * from acqdat_sensors_data limit 100000"
+
+    query = "select inserted_timestamp, org_id, project_id, sensor_id, parameters, inserted_at, EXTRACT(HOUR FROM DATE_TRUNC('hour', inserted_timestamp)) from acqdat_sensors_data limit 200000"
 
     cursor.execute(query)
     records = cursor.fetchall()
@@ -31,24 +33,28 @@ if __name__ == '__main__':
     for row in records:
         flat_array = []
         for key in row[4]:
-            flat_array = [ row[1], row[2], row[3], key['uuid'], row[0].replace(tzinfo=None), float(key['value']), row[5].replace(tzinfo=None)]
+            flat_array = [ row[1], row[2], row[3], key['uuid'], row[0].replace(tzinfo=None), float(key['value']), row[5].replace(tzinfo=None), row[6]]
         result.append(flat_array)
 
-    dataframe = pd.DataFrame(result, columns=['org_id', 'project_id', 'sensor_id', 'parameter_uuid', 'inserted_timestamp', 'value', 'inserted_at'])
-    # print(dataframe)
+    dataframe = pd.DataFrame(result, columns=['org_id', 'project_id', 'sensor_id', 'parameter_uuid', 'inserted_timestamp', 'value', 'inserted_at', 'hour'])
+    print(dataframe)
 
     sensor_table = pa.Table.from_pandas(dataframe)
 
     # Writing into single paruqt file 
-    pq.write_table(sensor_table, 'data/sensor_data.parquet', version='1.0')
+    # pq.write_table(sensor_table, 'data/sensor_data.parquet', version='1.0')
 
-    # Reading from same parquet file 
-    table = pq.read_table("data/sensor_data.parquet")
+    # # Reading from same parquet file 
+    # table = pq.read_table("data/sensor_data.parquet")
 
     # Partitioning Parquet files based on Project ID
     ds.write_dataset(sensor_table, "./partitioned", format="parquet",
-                 partitioning=ds.partitioning(pa.schema([("project_id", pa.int16())])))
+                 partitioning=ds.partitioning(pa.schema([("org_id", pa.int16()), ("project_id", pa.int16()), ("hour", pa.int16())])))
 
-    # Reading Partitioned Data - All together
-    dataset = ds.dataset("./partitioned", format="parquet")
-    table = dataset.to_table()
+
+    # ds.write_dataset(sensor_table, "./dataset", format="parquet",
+    #              partitioning=ds.partitioning(pa.schema([("org_id", pa.int16()), ("inserted_timestamp")])))
+
+    # # Reading Partitioned Data - All together
+    # dataset = ds.dataset("./partitioned", format="parquet")
+    # table = dataset.to_table()
