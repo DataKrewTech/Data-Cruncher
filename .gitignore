@@ -2,3 +2,4 @@
 *.py[cod]
 local.env
 src/partitioned_dataset_new
+postgresql-42.2.5.jar
