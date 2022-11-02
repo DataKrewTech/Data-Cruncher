@@ -1,2 +1,4 @@
 /venv
 *.py[cod]
+local.env
+src/partitioned_dataset_new

@@ -3,6 +3,10 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pyarrow.dataset as ds
+import s3fs
+import os
+
+s3 = s3fs.S3FileSystem(key=os.environ['S3_ACCESS_KEY'], secret=os.environ['S3_SECRET_KEY'])
 
 
 from db_reader import create_connection
@@ -28,8 +32,6 @@ if __name__ == '__main__':
     cursor.execute(query)
     records = cursor.fetchall()
 
-    #print(records)
-
     result = []
     for row in records:
         flat_array = []
@@ -38,15 +40,8 @@ if __name__ == '__main__':
         result.append(flat_array)
 
     dataframe = pd.DataFrame(result, columns=['org_id', 'project_id', 'sensor_id', 'parameter_uuid', 'inserted_timestamp', 'value', 'inserted_at', 'year', 'month', 'day'])
-    #print(dataframe)
 
     sensor_table = pa.Table.from_pandas(dataframe)
 
-    # Writing into single paruqt file 
-    # pq.write_table(sensor_table, 'data/sensor_data.parquet', version='1.0')
+    pq.write_to_dataset(sensor_table, root_path='s3://postproc/partitioned_dataset_new', filesystem=s3, partition_cols=(['year', 'month', 'day']))
 
-    # Partitioning Parquet files based on Project ID
-    # ds.write_dataset(sensor_table, "./partitioned_dataset", format="parquet",
-    #              partitioning=ds.partitioning(pa.schema([("year", pa.int16()), ("month", pa.int16()), ("day", pa.int16())])))
-
-    pq.write_to_dataset(sensor_table, root_path='partitioned_dataset_new', partition_cols=(['year', 'month', 'day']))
