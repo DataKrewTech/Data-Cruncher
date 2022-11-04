@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_project.apps.MyAppConfig',
+    'django_project.grpc_server',
     'apps.post_processing'
 ]
 
