@@ -10,6 +10,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pyarrow.dataset as ds
 from crate import client
+import environ
 
 scheduled_jobs_map = {}
 
@@ -22,19 +23,10 @@ def schedule_jobs(scheduler):
     print("refreshed scheduled jobs")
 
 def retrieve_jobs_to_schedule():
-    # connection = create_connection("acqdat_core_dev", "postgres", "postgres", "localhost", "5431")
-
-    # cursor = connection.cursor()
-    # query = "select * from offloading_trackers"
-
-    # cursor.execute(query)
-    # records = cursor.fetchall()
-    # print(records)
-
     # with connection.cursor() as cursor:
     #     cursor.execute("select * from offloading_trackers")
     #     records = cursor.fetchall()
-        #print(records)
+    #     print(records)
 
     #print(records)
     records = []
@@ -116,7 +108,12 @@ def write_dataset(dataset_name, curr_exec_time, next_iteration_time):
     #     records = cursor.fetchall()
     # print(records)
 
-    con = client.connect("128.199.70.245:4202/_sql")
+    env = environ.Env()
+    environ.Env.read_env()
+
+    url = "{}/_sql".format(env('CRATE_DB_URL'))
+
+    con = client.connect(url)
     cursor = con.cursor()
     if not curr_exec_time:
         conditional = "where inserted_timestamp <= '{}'".format(next_iteration_time)
@@ -132,11 +129,11 @@ def write_dataset(dataset_name, curr_exec_time, next_iteration_time):
 
     result = []
     for row in records:
-        flat_array = [row[4], row[7], row[8], row[6], datetime.fromtimestamp(row[3]/1000), row[0], datetime.fromtimestamp(row[2]/1000), row[10], row[9], row[11]]
+        flat_array = [row[4], row[7], row[8], row[6], datetime.fromtimestamp(row[3]/1000), row[0], row[1], datetime.fromtimestamp(row[2]/1000), row[10], row[9], row[11]]
         result.append(flat_array)
 
     print(result)
-    dataframe = pd.DataFrame(result, columns=['org_id', 'project_id', 'sensor_id', 'parameter_uuid', 'inserted_timestamp', 'value', 'inserted_at', 'year', 'month', 'day'])
+    dataframe = pd.DataFrame(result, columns=['org_id', 'project_id', 'sensor_id', 'parameter_uuid', 'inserted_timestamp', 'value', 'data_type', 'inserted_at', 'year', 'month', 'day'])
 
     sensor_table = pa.Table.from_pandas(dataframe)
     pq.write_to_dataset(sensor_table, root_path=dataset_name, partition_cols=(['year', 'month', 'day']))
