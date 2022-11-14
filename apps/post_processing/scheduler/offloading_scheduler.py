@@ -1,4 +1,6 @@
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
+from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.triggers.cron import CronTrigger
 from pytz import utc
 from datetime import datetime, timedelta
@@ -14,7 +16,20 @@ import environ
 
 scheduled_jobs_map = {}
 
-def schedule_jobs(scheduler):
+executors = {
+    'default': ThreadPoolExecutor(20),
+    'processpool': ProcessPoolExecutor(5)
+}
+job_defaults = {
+    'max_instances': 3
+}
+jobstores = {
+    'default': RedisJobStore(jobs_key='offloading_scheduler.jobs1-21111212', run_times_key='offloading_scheduler.running_jobs1-22111121', host='localhost', port=6379)
+}
+#scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=utc)
+scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=utc)
+
+def schedule_jobs():
     jobs = retrieve_jobs_to_schedule()
     for job in jobs: 
         add_job_if_applicable(job, scheduler)
@@ -72,7 +87,7 @@ def add_job_if_applicable(job, scheduler):
         print("next_iteration")
         datetime1 = job['next_iteration']
         print(datetime1)
-        scheduler.add_job(lambda: execute_job(job), 'date', run_date=datetime1, id=job_id)
+        scheduler.add_job(execute_job, 'date', args=[job], run_date=datetime1, id=job_id)
         #scheduler.add_job(lambda: execute_job(job), CronTrigger.from_crontab(job['cron_expression'], timezone='UTC'), id=job_id)
         
         print("added job with id: " + str(job_id))
@@ -96,9 +111,33 @@ def execute_job(job):
     write_dataset(job['target_table'], job['current_datetime'], job['next_iteration'])
     print(datetime.utcnow())
 
+def listener(event):
+    if event.exception:
+        print('The job crashed :(')
+    else:
+        print('The job worked :)')
+
 def start():
-    scheduler = BackgroundScheduler(timezone=utc)
-    scheduler.add_job(lambda: schedule_jobs(scheduler), 'interval', seconds=5, next_run_time=datetime.utcnow(), id='scheduler-job-id')
+    # jobstores = {
+    #     'mongo': MongoDBJobStore(),
+    #     'default': SQLAlchemyJobStore(url='sqlite:///jobs.sqlite')
+    # }
+    # executors = {
+    #     'default': ThreadPoolExecutor(20),
+    #     'processpool': ProcessPoolExecutor(5)
+    # }
+    # job_defaults = {
+    #     'max_instances': 3
+    # }
+    # jobstores = {
+    #     'default': RedisJobStore(jobs_key='offloading_scheduler.jobs', run_times_key='offloading_scheduler.running_jobs', host='localhost', port=6379)
+    # }
+    # #scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=utc)
+    # scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=utc)
+    #scheduler.add_jobstore('redis', jobs_key='example.jobs', run_times_key='example.run_times')
+    
+    #scheduler.listener(my_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
+    scheduler.add_job(schedule_jobs, trigger='interval', seconds=5, next_run_time=datetime.utcnow(), id='scheduler-job-id')
     scheduler.start()
 #input()
 
