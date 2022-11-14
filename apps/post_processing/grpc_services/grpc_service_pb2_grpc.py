@@ -2,10 +2,10 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import apps.post_processing.grpc_services.main_pb2 as main__pb2
+import apps.post_processing.grpc_services.grpc_service_pb2 as grpc__service__pb2
 
 
-class MainStub(object):
+class GrpcServiceStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -14,45 +14,43 @@ class MainStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.GetServerResponse = channel.unary_unary(
-                '/Main/GetServerResponse',
-                request_serializer=main__pb2.Message.SerializeToString,
-                response_deserializer=main__pb2.MessageResponse.FromString,
+        self.FetchDataSets = channel.unary_unary(
+                '/GrpcService/FetchDataSets',
+                request_serializer=grpc__service__pb2.Request.SerializeToString,
+                response_deserializer=grpc__service__pb2.Response.FromString,
                 )
 
 
-class MainServicer(object):
+class GrpcServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def GetServerResponse(self, request, context):
+    def FetchDataSets(self, request, context):
         """A simple RPC.
-
-        Obtains the MessageResponse at a given position.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_MainServicer_to_server(servicer, server):
+def add_GrpcServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'GetServerResponse': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetServerResponse,
-                    request_deserializer=main__pb2.Message.FromString,
-                    response_serializer=main__pb2.MessageResponse.SerializeToString,
+            'FetchDataSets': grpc.unary_unary_rpc_method_handler(
+                    servicer.FetchDataSets,
+                    request_deserializer=grpc__service__pb2.Request.FromString,
+                    response_serializer=grpc__service__pb2.Response.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'Main', rpc_method_handlers)
+            'GrpcService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
  # This class is part of an EXPERIMENTAL API.
-class Main(object):
+class GrpcService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def GetServerResponse(request,
+    def FetchDataSets(request,
             target,
             options=(),
             channel_credentials=None,
@@ -62,8 +60,8 @@ class Main(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Main/GetServerResponse',
-            main__pb2.Message.SerializeToString,
-            main__pb2.MessageResponse.FromString,
+        return grpc.experimental.unary_unary(request, target, '/GrpcService/FetchDataSets',
+            grpc__service__pb2.Request.SerializeToString,
+            grpc__service__pb2.Response.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
