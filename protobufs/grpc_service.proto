@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+service GrpcService{
+  // A simple RPC.
+ rpc FetchDataSets(Request) returns (Response) {}
+
+}
+
+message Request{
+ string auth_token = 1;
+ int32 data_source_id = 2;
+}
+
+message Response{
+ int32 status = 1;
+ string body = 2;
+}
